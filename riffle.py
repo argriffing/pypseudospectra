@@ -5,6 +5,7 @@ Reference:
 A Numerical Analyst Looks at the Cutoff Phenomenon
 in Card Shuffling and Other Markov Chains
 Gudbjorn F. Jonsson and Lloyd N. Trefethen
+http://eprints.maths.ox.ac.uk/1313/1/NA-97-12.pdf
 
 one-norm estimation for pseudospectra:
 http://eprints.ma.man.ac.uk/321/01/covered/MIMS_ep2006_145.pdf
@@ -89,7 +90,7 @@ def _eulerian(n, r):
     return _eulerian_recurrence(n, r)
 
 def log_binom(a, b):
-    return gammaln(a+1) - gammaln(b+1) - gammaln(a-b)
+    return gammaln(a+1) - gammaln(b+1) - gammaln(a-b+1)
 
 def riffle_transition_matrix(n):
     # Eq. (7.2)
@@ -120,7 +121,11 @@ def resolvent_norm(A, z):
     n, m = A.shape
     assert_equal(n, m)
     I = np.eye(n, dtype=float)
-    return np.linalg.norm(np.linalg.inv(z*I - A), ord=np.inf)
+    try:
+        B = np.linalg.inv(z*I - A)
+    except np.linalg.LinAlgError as e:
+        return 0
+    return np.linalg.norm(B, ord=np.inf)
 
 def main():
     n = 52
@@ -131,10 +136,18 @@ def main():
     #print(p)
     #print(np.log(p.astype(float)))
     P = riffle_transition_matrix(n)
+
+    print('row sums of probability matrix:')
+    print(P.sum(axis=1))
+
     pi = np.exp(log_a - gammaln(n+1))
-    print(pi.sum())
+
+    print('sum of stationary probabilities:', pi.sum())
     A = P - pi
-    figure_7_2(A*2)
+
+    print('creating the figure...')
+    #figure_7_2(2 * A)
+    figure_7_2(A)
 
 
 def figure_7_2(A):
@@ -148,9 +161,10 @@ def figure_7_2(A):
     levels = np.power(10, [1, 1.5, 2, 2.5, 3, 3.5, 4])
     f = np.vectorize(partial(resolvent_norm, A))
 
-    low = -1
-    high = 1
-    u = np.linspace(low, high, 200)
+    low = -1.5
+    high = 1.5
+    u = np.linspace(low, high, 201)
+    #u = np.linspace(low, high, 40)
     X, Y = np.meshgrid(u, u)
     z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
     Z = f(z)
@@ -159,22 +173,23 @@ def figure_7_2(A):
     print('eigenvalues of decay matrix:')
     print(scipy.linalg.eigvals(A))
 
-    fig = plt.figure()
-    #plt.axes().set_aspect('equal', 'datalim')
-    plt.axes().set_aspect('equal')
-
-    #plt.contour(X, Y, distnT1.reshape((n, n)))
-    #plt.contour(X, Y, distnT2.reshape((n, n)))
-    #plt.contour(X, Y, distnT3.reshape((n, n)))
+    #fig = plt.figure()
+    fig, ax = plt.subplots()
+    #plt.axes().
+    ax.set_aspect('equal')
 
     plt.contour(
             X, Y,
             Z,
-            #solutions[i].reshape((n, n)),
-            cmap=cm.hot,
-            #levels=levels,
-            norm=colors.LogNorm(),
+            #cmap=cm.hot,
+            levels=levels,
+            #norm=colors.LogNorm(),
+            colors='k', # negative contours will be dashed by default
             )
+
+    circle1 = plt.Circle((0, 0), 1, color='k', linestyle='dashed', fill=False)
+
+    fig.gca().add_artist(circle1)
 
 
     """
