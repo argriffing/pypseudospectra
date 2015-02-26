@@ -19,12 +19,12 @@ import numpy as np
 from numpy.testing import assert_equal
 from scipy.special import gammaln
 import scipy.linalg
+import scipy.sparse.linalg
 
 import matplotlib.pyplot as plt
 from matplotlib import colors, cm
 
 from util import memoized
-
 
 
 #@lru_cache()
@@ -47,27 +47,44 @@ def _eulerian(n, r):
 def log_binom(a, b):
     return gammaln(a+1) - gammaln(b+1) - gammaln(a-b+1)
 
+
 def riffle_transition_matrix(n):
     # Eq. (7.2)
     a = np.array([_eulerian(n, i) for i in range(n+1)], dtype=float)
-    #a = np.array([_eulerian(n, i) for i in range(n+0)], dtype=float)
     log_a = np.log(a)
     log_P = np.zeros((n+1, n+1), dtype=float)
-    #log_P = np.zeros((n+0, n+0), dtype=float)
-    #for i in range(0, n+0):
-        #for j in range(0, n+0):
     for i in range(1, n+1):
         for j in range(1, n+1):
             log_P[i, j] -= n * np.log(2)
             log_P[i, j] += log_binom(n+1, 2*i - j)
             log_P[i, j] += log_a[j] - log_a[i]
     return np.exp(log_P[1:, 1:])
-    #return np.exp(log_P)
 
-def stationary_distribution(n):
-    eulerian = partial(_eulerian, n)
-    #return [eulerian
-    #TODO fixme
+def resolvent(A, z):
+    # A: matrix
+    # z: complex number
+    n, m = A.shape
+    assert_equal(n, m)
+    I = np.eye(n, dtype=float)
+    B = np.linalg.inv(z*I - A)
+    return B
+
+
+def resolvent_infnorm(A, z):
+    try:
+        B = resolvent(A, z)
+    except np.linalg.LinAlgError as e:
+        return 0
+    return np.linalg.norm(B, ord=np.inf)
+
+
+def resolvent_infnormest(t, A, z):
+    try:
+        B = resolvent(A, z)
+    except np.linalg.LinAlgError as e:
+        return 0
+    L = scipy.sparse.linalg.aslinearoperator(B)
+    return scipy.sparse.linalg.onenormest(L.H, t=t)
 
 
 def resolvent_norm(A, z):
@@ -82,13 +99,11 @@ def resolvent_norm(A, z):
         return 0
     return np.linalg.norm(B, ord=np.inf)
 
+
 def main():
     n = 52
     a = np.array([_eulerian(n, i) for i in range(1, n+1)], dtype=float)
-    #a = np.array([_eulerian(n, i) for i in range(0, n+0)], dtype=float)
     log_a = np.log(a)
-    #print(p)
-    #print(np.log(p.astype(float)))
     P = riffle_transition_matrix(n)
 
     print('row sums of probability matrix:')
@@ -100,25 +115,25 @@ def main():
     A = P - pi
 
     print('creating the figure...')
-    #figure_7_2(2 * A)
-    figure_7_2(A)
+    #for t in 1, 2, 3:
+        #figure_7_2(t, A)
+    figure_7_2(None, A)
 
 
-def figure_7_2(A):
+def figure_7_2(t, A):
     """
     Figure 7.2.
 
-    epsilon level sets:
-    1e-1, 1e-1.5, 1e-2, ..., 1e-4
-    dashed curve marks unit circle on the complex plane
     """
     levels = np.power(10, [1, 1.5, 2, 2.5, 3, 3.5, 4])
-    f = np.vectorize(partial(resolvent_norm, A))
+    if t is None:
+        f = np.vectorize(partial(resolvent_norm, A))
+    else:
+        f = np.vectorize(partial(resolvent_infnormest, t, A))
 
     low = -1.5
     high = 1.5
     u = np.linspace(low, high, 201)
-    #u = np.linspace(low, high, 40)
     X, Y = np.meshgrid(u, u)
     z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
     Z = f(z)
@@ -127,51 +142,22 @@ def figure_7_2(A):
     print('eigenvalues of decay matrix:')
     print(scipy.linalg.eigvals(A))
 
-    #fig = plt.figure()
+    # Add contour lines at predefined levels.
     fig, ax = plt.subplots()
-    #plt.axes().
     ax.set_aspect('equal')
+    plt.contour( X, Y, Z, levels=levels, colors='k')
 
-    plt.contour(
-            X, Y,
-            Z,
-            #cmap=cm.hot,
-            levels=levels,
-            #norm=colors.LogNorm(),
-            colors='k', # negative contours will be dashed by default
-            )
-
+    # Add dashed unit circle.
     circle1 = plt.Circle((0, 0), 1, color='k', linestyle='dashed', fill=False)
-
     fig.gca().add_artist(circle1)
 
+    #plt.show()
 
-    """
-    def animate(i):
-        cont = plt.contour(
-                X, Y,
-                solutions[i].reshape((n, n)),
-                cmap=cm.hot,
-                levels=levels,
-                norm=colors.LogNorm(),
-                )
-        return cont
-    """
-
-    """
-    anim = animation.FuncAnimation(
-            fig,
-            animate,
-            #init_func=init,
-            init_func=None,
-            frames=FRAMES,
-            #frames=11,
-            #interval=20,
-            #blit=True,
-            )
-    """
-
-    plt.show()
+    if t is None:
+        filename = 'riffle.svg'
+    else:
+        filename = 'riffle_t_%d.svg' % t
+    plt.savefig(filename)
 
 
 main()
