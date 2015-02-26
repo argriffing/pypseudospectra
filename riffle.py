@@ -11,65 +11,20 @@ one-norm estimation for pseudospectra:
 http://eprints.ma.man.ac.uk/321/01/covered/MIMS_ep2006_145.pdf
 
 """
+from __future__ import print_function, division
 
-#from functools import lru_cache, partial
 from functools import partial
-import collections
-
-from math import factorial
 
 import numpy as np
 from numpy.testing import assert_equal
-import scipy.misc
 from scipy.special import gammaln
 import scipy.linalg
 
 import matplotlib.pyplot as plt
 from matplotlib import colors, cm
 
-class memoized(object):
-    '''Decorator. Caches a function's return value each time it is called.
-    If called later with the same arguments, the cached value is returned
-    (not reevaluated).
-    '''
-    def __init__(self, func):
-        self.func = func
-        self.cache = {}
-    def __call__(self, *args):
-        if not isinstance(args, collections.Hashable):
-             # uncacheable. a list, for instance.
-             # better to not cache than blow up.
-             return self.func(*args)
-        if args in self.cache:
-             return self.cache[args]
-        else:
-             value = self.func(*args)
-             self.cache[args] = value
-             return value
-    def __repr__(self):
-        '''Return the function's docstring.'''
-        return self.func.__doc__
-    def __get__(self, obj, objtype):
-        '''Support instance methods.'''
-        return functools.partial(self.__call__, obj)
+from util import memoized
 
-
-def eulerian_logs(n):
-    # from the appendix
-    # seems buggy
-    a = np.zeros(n)
-    anew = np.zeros(n)
-    for j in range(2, n):
-        x = np.arange(1, j-1)
-        y = np.exp(a[1:j-1] - a[:j-2])
-        z = np.arange(j-1, 1, -1)
-        print(x.shape)
-        print(y.shape)
-        print(z.shape)
-        u = x * y + z
-        anew[1:j-1] = np.log(u) + a[:j-2]
-        a = anew
-    return a
 
 
 #@lru_cache()
@@ -129,7 +84,6 @@ def resolvent_norm(A, z):
 
 def main():
     n = 52
-    #print(np.exp(eulerian_logs(n)))
     a = np.array([_eulerian(n, i) for i in range(1, n+1)], dtype=float)
     #a = np.array([_eulerian(n, i) for i in range(0, n+0)], dtype=float)
     log_a = np.log(a)
