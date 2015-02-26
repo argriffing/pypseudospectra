@@ -79,25 +79,16 @@ def resolvent_infnorm(A, z):
 
 
 def resolvent_infnormest(t, A, z):
+    # TODO use decomposition instead of inversion
     try:
+        #n = A.shape[0]
+        #I = np.eye(n, dtype=float)
+        #Binv = z*I - A
         B = resolvent(A, z)
+        L = scipy.sparse.linalg.aslinearoperator(B)
+        return scipy.sparse.linalg.onenormest(L.H, t=t)
     except np.linalg.LinAlgError as e:
         return 0
-    L = scipy.sparse.linalg.aslinearoperator(B)
-    return scipy.sparse.linalg.onenormest(L.H, t=t)
-
-
-def resolvent_norm(A, z):
-    # A: matrix
-    # z: complex number
-    n, m = A.shape
-    assert_equal(n, m)
-    I = np.eye(n, dtype=float)
-    try:
-        B = np.linalg.inv(z*I - A)
-    except np.linalg.LinAlgError as e:
-        return 0
-    return np.linalg.norm(B, ord=np.inf)
 
 
 def main():
