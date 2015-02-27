@@ -24,6 +24,19 @@ from scipy.sparse.linalg.isolve.lsqr import _sym_ortho
 import matplotlib.pyplot as plt
 from matplotlib import colors, cm
 
+def gaussian_nodes_and_weights(N):
+    # Nodes and weights for Gaussian quadrature.
+    # Nodes are eigenvalues.
+    # Weights are somehow related to eigenvectors.
+    U = np.arange(1, N) # Is this [1:N-1] in Matlab?
+    beta = 0.5 * (1 - (2 * U)**(-2))**(-0.5)
+    T = np.diag(beta, k=1) + np.diag(beta, k=-1)
+    w, v = scipy.linalg.eigh(T)
+    nodes = w
+    #weights = 2 * np.square(v[:, 0])
+    weights = 2 * np.square(v[0, :])
+    return nodes, weights
+
 
 def make_landau_matrix():
 
@@ -36,23 +49,31 @@ def make_landau_matrix():
     # Nodes and weights for Gaussian quadrature.
     # Nodes are eigenvalues.
     # Weights are somehow related to eigenvectors.
-    U = np.arange(1, N) # Is this [1:N-1] in Matlab?
-    beta = 0.5 * (1 - (2 * U)**(-2))**(-0.5)
-    T = np.diag(beta, k=1) + np.diag(beta, k=-1)
-    w, v = scipy.linalg.eigh(T)
-    nodes = w
-    weights = 2 * np.square(v[:, 0])
+    #U = np.arange(1, N) # Is this [1:N-1] in Matlab?
+    #beta = 0.5 * (1 - (2 * U)**(-2))**(-0.5)
+    #T = np.diag(beta, k=1) + np.diag(beta, k=-1)
+    #w, v = scipy.linalg.eigh(T)
+    #nodes = w
+    ##weights = 2 * np.square(v[:, 0])
+    #weights = 2 * np.square(v[0, :])
+    #print(weights)
+
+    #nodes, weights = gaussian_nodes_and_weights(N)
+    nodes, weights = np.polynomial.legendre.leggauss(N)
 
     # construct matrix B
     B = np.zeros((N, N), dtype=complex)
     for k in range(N):
-        W = -1j * np.pi * F * np.square(nodes[k] - nodes)
-        B[k, :] = weights * np.sqrt(1j * F) * np.exp(W)
+        W = -1j * np.pi * F * np.square(nodes[k] - nodes.conj())
+        B[k, :] = weights.conj() * np.sqrt(1j * F) * np.exp(W)
 
     # Weight the matrix with Gaussian quadrature weights.
     w = np.sqrt(weights)
     for j in range(N):
+        #B[:, j] = w * B[:, j] / w[j]
         B[:, j] = w * B[:, j] / w[j]
+
+    return B
 
     # Compute Schur form and compress to interesting subspace.
 
@@ -60,7 +81,6 @@ def make_landau_matrix():
     # and U.H.dot(U) = identity, and T is a Schur matrix.
     #U, T = schur(B)
 
-    """
     # Do the same thing using scipy instead of Matlab.
     T, Z = scipy.linalg.schur(B)
     U = Z
@@ -69,23 +89,22 @@ def make_landau_matrix():
     # Maybe the idea is to use only the subspace involving
     # eigenpairs whose eigenvalues have magnitude greater than 0.1?
     eigB = np.diag(T)
-    select = find(abs(eigB) > 0.1)
-    n = length(select)
+    indices, = np.where(abs(eigB) > 0.0001)
+    #indices, = np.where(abs(eigB) > 0.1)
+    n = indices.shape[0]
     for i in range(n):
-        for k in select(i) - 1 : -1 : i:
+        #for k in select(i) - 1 : -1 : i:
+        for k in range(indices[i]-1, i-1, -1):
             a = T[k, k+1]
             b = T[k, k] - T[k+1, k+1]
             x = np.array([a, b])
             G, r = planerot(x)
             J = np.arange(k, k+2)
             T[:, J] = T[:, J].dot(G)
-            T[J, :] = G.T.dot(T[J, :])
-    T = np.triu(T)
+            T[J, :] = G.conj().T.dot(T[J, :])
+    T = np.triu(T[:n+1, :n+1])
 
     return T
-    """
-
-    return B
 
 
 """
@@ -163,8 +182,30 @@ def resolvent_onenorm(A, z):
     return np.linalg.norm(B, ord=1)
 
 
+def check_gaussian_nodes_and_weights(N):
+    nodes, weights = gaussian_nodes_and_weights(N)
+
+    print('custom gaussian nodes and weights')
+    print('nodes:')
+    print(nodes)
+    print('weights:')
+    print(weights)
+    print()
+
+    print('scipy gaussian nodes and weights')
+    nodes, weights = np.polynomial.legendre.leggauss(N)
+    print('nodes:')
+    print(nodes)
+    print('weights:')
+    print(weights)
+    print()
+
 
 def main():
+
+    #check_gaussian_nodes_and_weights(10)
+    #return
+
     #a = np.array([_eulerian(n, i) for i in range(1, n+1)], dtype=float)
     #log_a = np.log(a)
     A = make_landau_matrix()
@@ -183,7 +224,7 @@ def main():
 
 def figure(t, A):
 
-    levels = np.power(10, np.linspace(1, 10, 21))
+    levels = np.power(10, np.linspace(1, 10, 19))
     if t is None:
         #f = np.vectorize(partial(resolvent_infnorm, A))
         f = np.vectorize(partial(resolvent_onenorm, A))
@@ -193,9 +234,10 @@ def figure(t, A):
 
     low = -1.5
     high = 1.5
+    #u = np.linspace(low, high, 81)
     #u = np.linspace(low, high, 101)
-    u = np.linspace(low, high, 41)
-    #u = np.linspace(low, high, 201)
+    #u = np.linspace(low, high, 41)
+    u = np.linspace(low, high, 201)
     #u = np.linspace(low, high, 21)
     X, Y = np.meshgrid(u, u)
     z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
