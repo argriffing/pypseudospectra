@@ -21,8 +21,38 @@ from numpy.testing import assert_equal
 import scipy.linalg
 from scipy.sparse.linalg.isolve.lsqr import _sym_ortho
 
+from scipy.sparse.linalg.interface import aslinearoperator, LinearOperator
+
 import matplotlib.pyplot as plt
 from matplotlib import colors, cm
+
+
+
+def get_landau_resolvent_operator(T, Z, eps_recip):
+    n = T.shape[0]
+    T = np.diag(np.ones(n) * eps_recip) - T
+    return LandauResolventOperator(T, Z)
+
+
+class LandauResolventOperator(LinearOperator):
+
+    def __init__(self, M, Z, lower=False):
+        self.M = M
+        self.Z = Z
+        self.lower = lower
+        self.shape = M.shape
+
+    def _matmat(self, B):
+        M = self.M
+        Z = self.Z
+        ZH = self.Z.conj().T
+        C = scipy.linalg.solve_triangular(M, Z.dot(B), lower=self.lower)
+        return ZH.dot(C)
+
+    def _adjoint(self):
+        return LandauResolventOperator(self.M.conj().T, self.Z,
+                lower=(not self.lower))
+
 
 def gaussian_nodes_and_weights(N):
     # Nodes and weights for Gaussian quadrature.
@@ -182,6 +212,11 @@ def resolvent_onenorm(A, z):
     return np.linalg.norm(B, ord=1)
 
 
+def resolvent_onenormest(t, T, Z, eps_recip):
+    op = get_landau_resolvent_operator(T, Z, eps_recip)
+    return scipy.sparse.linalg.onenormest(op, t=t)
+
+
 def check_gaussian_nodes_and_weights(N):
     nodes, weights = gaussian_nodes_and_weights(N)
 
@@ -219,7 +254,9 @@ def main():
     #A = P - pi
 
     print('creating the figure...')
-    figure(None, A)
+    t = 2
+    #figure(None, A)
+    figure(t, A)
 
 
 def figure(t, A):
@@ -229,8 +266,8 @@ def figure(t, A):
         #f = np.vectorize(partial(resolvent_infnorm, A))
         f = np.vectorize(partial(resolvent_onenorm, A))
     else:
-        pass
-        #f = np.vectorize(partial(resolvent_infnormest, t, A))
+        T, Z = scipy.linalg.schur(A)
+        f = np.vectorize(partial(resolvent_onenormest, t, T, Z))
 
     low = -1.5
     high = 1.5
