@@ -11,6 +11,10 @@ A complex symmetric but not hermitian compact integral operator.
 
 http://www.cs.ox.ac.uk/projects/pseudospectra/thumbnails/landau.html
 
+block algorithm for matrix 1-norm estimation
+with an application to 1-norm pseudospectra
+http://eprints.ma.man.ac.uk/321/01/covered/MIMS_ep2006_145.pdf
+
 """
 from __future__ import print_function, division
 
@@ -254,7 +258,7 @@ def main():
     #A = P - pi
 
     print('creating the figure...')
-    t = 2
+    t = 16
     #figure(None, A)
     figure(t, A)
 
