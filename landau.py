@@ -53,6 +53,10 @@ class LandauResolventOperator(LinearOperator):
         C = scipy.linalg.solve_triangular(M, Z.dot(B), lower=self.lower)
         return ZH.dot(C)
 
+    def _transpose(self):
+        return LandauResolventOperator(self.M.T, self.Z,
+                lower=(not self.lower))
+
     def _adjoint(self):
         return LandauResolventOperator(self.M.conj().T, self.Z,
                 lower=(not self.lower))
@@ -143,13 +147,20 @@ def main():
 
     A = make_landau_matrix()
 
-    print('creating the figure...')
-    #t = 16
-    t = None
+    print('creating the figures...')
+    t = 8
     figure(t, A)
+    #for t in None, 1, 2, 4, 16:
+        #print('t =', t, '...')
+        #figure(t, A)
 
 
 def figure(t, A):
+
+    if t is None:
+        filename = 'landau.svg'
+    else:
+        filename = 'landau_t_%d.svg' % t
 
     levels = np.power(10, np.linspace(1, 10, 19))
     if t is None:
@@ -160,7 +171,8 @@ def figure(t, A):
 
     low = -1.5
     high = 1.5
-    grid_count = 41
+    #grid_count = 201
+    grid_count = 100
     u = np.linspace(low, high, grid_count)
     X, Y = np.meshgrid(u, u)
     z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
@@ -179,7 +191,8 @@ def figure(t, A):
     circle1 = plt.Circle((0, 0), 1, color='k', linestyle='dashed', fill=False)
     fig.gca().add_artist(circle1)
 
-    plt.show()
+    #plt.show()
+    plt.savefig(filename)
 
 
 main()
