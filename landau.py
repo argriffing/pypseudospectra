@@ -31,35 +31,7 @@ import matplotlib.pyplot as plt
 from matplotlib import colors, cm
 
 
-
-def get_landau_resolvent_operator(T, Z, eps_recip):
-    n = T.shape[0]
-    T = np.diag(np.ones(n) * eps_recip) - T
-    return LandauResolventOperator(T, Z)
-
-
-class LandauResolventOperator(LinearOperator):
-
-    def __init__(self, M, Z, lower=False):
-        self.M = M
-        self.Z = Z
-        self.lower = lower
-        self.shape = M.shape
-
-    def _matmat(self, B):
-        M = self.M
-        Z = self.Z
-        ZH = self.Z.conj().T
-        C = scipy.linalg.solve_triangular(M, Z.dot(B), lower=self.lower)
-        return ZH.dot(C)
-
-    def _transpose(self):
-        return LandauResolventOperator(self.M.T, self.Z,
-                lower=(not self.lower))
-
-    def _adjoint(self):
-        return LandauResolventOperator(self.M.conj().T, self.Z,
-                lower=(not self.lower))
+from resolvent import resolvent_onenorm, resolvent_onenormest
 
 
 def make_landau_matrix():
@@ -120,6 +92,7 @@ def test_planerot():
     print('Gx:', np.dot(G, x))
     
 
+"""
 def resolvent(A, z):
     # A: matrix
     # z: complex number
@@ -128,51 +101,57 @@ def resolvent(A, z):
     I = np.eye(n, dtype=float)
     B = np.linalg.inv(z*I - A)
     return B
+"""
 
 
-def resolvent_onenorm(A, z):
-    try:
-        B = resolvent(A, z)
-    except np.linalg.LinAlgError as e:
-        return 0
-    return np.linalg.norm(B, ord=1)
-
-
-def resolvent_onenormest(t, T, Z, eps_recip):
-    op = get_landau_resolvent_operator(T, Z, eps_recip)
-    return scipy.sparse.linalg.onenormest(op, t=t)
 
 
 def main():
 
     A = make_landau_matrix()
+    #t_values = [2]
+    t_values = [None, 1, 2, 4, 8, 16]
+    base_filename = 'landau.new'
 
-    print('creating the figures...')
-    t = 8
-    figure(t, A)
-    #for t in None, 1, 2, 4, 16:
-        #print('t =', t, '...')
-        #figure(t, A)
+    print('creating the figures for t in', t_values, '...')
+    for t in t_values:
+        print('t =', t, '...')
+        figure(base_filename, t, A)
 
 
-def figure(t, A):
+def figure(base_filename, t, A):
 
     if t is None:
-        filename = 'landau.svg'
+        filename = base_filename + '.svg'
     else:
-        filename = 'landau_t_%d.svg' % t
+        filename = base_filename + '.' + str(t) + '.svg'
 
     levels = np.power(10, np.linspace(1, 10, 19))
+
+    # The outputs of the Schur decomposition are:
+    # T : a triangular matrix, upper triangular by default.
+    # Z : A unitary matrix
+    T, Z = scipy.linalg.schur(A, output='complex')
+
+    # Check the decomposition.
+    #ZH = Z.conj().T
+    #W = Z.dot(T).dot(ZH)
+    #error = np.linalg.norm(W - A)
+    #print('norm of original matrix:', np.linalg.norm(A))
+    #print('norm of reconstructed matrix:', np.linalg.norm(W))
+    #print('norm of difference:', error)
+
+    #raise Exception
+
     if t is None:
-        f = np.vectorize(partial(resolvent_onenorm, A))
+        f = np.vectorize(partial(resolvent_onenorm, T, Z))
     else:
-        T, Z = scipy.linalg.schur(A)
         f = np.vectorize(partial(resolvent_onenormest, t, T, Z))
 
     low = -1.5
     high = 1.5
-    #grid_count = 201
-    grid_count = 100
+    grid_count = 201
+    #grid_count = 100
     u = np.linspace(low, high, grid_count)
     X, Y = np.meshgrid(u, u)
     z = u[np.newaxis, :] + 1j*u[:, np.newaxis]

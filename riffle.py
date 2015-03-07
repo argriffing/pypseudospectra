@@ -20,11 +20,13 @@ from numpy.testing import assert_equal
 from scipy.special import gammaln
 import scipy.linalg
 import scipy.sparse.linalg
+from scipy.sparse.linalg._onenormest import _onenormest_core
 
 import matplotlib.pyplot as plt
 from matplotlib import colors, cm
 
 from util import memoized
+from resolvent import resolvent_onenorm, resolvent_onenormest
 
 
 #@lru_cache()
@@ -60,6 +62,7 @@ def riffle_transition_matrix(n):
             log_P[i, j] += log_a[j] - log_a[i]
     return np.exp(log_P[1:, 1:])
 
+"""
 def resolvent(A, z):
     # A: matrix
     # z: complex number
@@ -70,15 +73,15 @@ def resolvent(A, z):
     return B
 
 
-def resolvent_infnorm(A, z):
+def resolvent_onenorm(A, z):
     try:
         B = resolvent(A, z)
     except np.linalg.LinAlgError as e:
         return 0
-    return np.linalg.norm(B, ord=np.inf)
+    return np.linalg.norm(B, ord=1)
 
 
-def resolvent_infnormest(t, A, z):
+def resolvent_onenormest(t, A, z):
     # TODO use decomposition instead of inversion
     try:
         #n = A.shape[0]
@@ -86,9 +89,10 @@ def resolvent_infnormest(t, A, z):
         #Binv = z*I - A
         B = resolvent(A, z)
         L = scipy.sparse.linalg.aslinearoperator(B)
-        return scipy.sparse.linalg.onenormest(L.H, t=t)
+        return scipy.sparse.linalg.onenormest(L, t=t)
     except np.linalg.LinAlgError as e:
         return 0
+"""
 
 
 def main():
@@ -106,9 +110,9 @@ def main():
     A = P - pi
 
     print('creating the figure...')
-    #for t in 1, 2, 3:
-        #figure_7_2(t, A)
-    figure_7_2(None, A)
+    for t in 1, 2, 3:
+        figure_7_2(t, A.T)
+    #figure_7_2(None, A)
 
 
 def figure_7_2(t, A):
@@ -117,14 +121,21 @@ def figure_7_2(t, A):
 
     """
     levels = np.power(10, [1, 1.5, 2, 2.5, 3, 3.5, 4])
+
+    # The outputs of the Schur decomposition are:
+    # T : a triangular matrix, upper triangular by default.
+    # Z : A unitary matrix
+    T, Z = scipy.linalg.schur(A, output='complex')
+
     if t is None:
-        f = np.vectorize(partial(resolvent_norm, A))
+        f = np.vectorize(partial(resolvent_onenorm, T, Z))
     else:
-        f = np.vectorize(partial(resolvent_infnormest, t, A))
+        f = np.vectorize(partial(resolvent_onenormest, t, T, Z))
 
     low = -1.5
     high = 1.5
     u = np.linspace(low, high, 201)
+    #u = np.linspace(low, high, 101)
     X, Y = np.meshgrid(u, u)
     z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
     Z = f(z)
@@ -136,7 +147,7 @@ def figure_7_2(t, A):
     # Add contour lines at predefined levels.
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
-    plt.contour( X, Y, Z, levels=levels, colors='k')
+    plt.contour(X, Y, Z, levels=levels, colors='k')
 
     # Add dashed unit circle.
     circle1 = plt.Circle((0, 0), 1, color='k', linestyle='dashed', fill=False)
