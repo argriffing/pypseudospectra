@@ -58,6 +58,14 @@ class _ResolventOperator(LinearOperator):
         M = self.M
         Z = self.Z
         ZH = self.Z.conj().T
+        #assert_equal(self.M.shape, self.Z.shape)
+        #assert_equal(self.M.shape, self.ZH.shape)
+        print('shapes in resolvent matrix multiplication:')
+        print('M:', M.shape)
+        print('Z:', Z.shape)
+        print('ZH:', ZH.shape)
+        print('B:', B.shape)
+        print()
         C = scipy.linalg.solve_triangular(M, ZH.dot(B), lower=self.lower)
         return Z.dot(C)
 

@@ -19,6 +19,7 @@ http://eprints.ma.man.ac.uk/321/01/covered/MIMS_ep2006_145.pdf
 from __future__ import print_function, division
 
 from functools import partial
+import argparse
 
 import numpy as np
 from numpy.testing import assert_equal
@@ -90,42 +91,89 @@ def test_planerot():
     print('G:', G)
     print('r:', r)
     print('Gx:', np.dot(G, x))
-    
-
-"""
-def resolvent(A, z):
-    # A: matrix
-    # z: complex number
-    n, m = A.shape
-    assert_equal(n, m)
-    I = np.eye(n, dtype=float)
-    B = np.linalg.inv(z*I - A)
-    return B
-"""
 
 
+def my_multi_figure(base_filename, grid_count, t0, t1, t2, t3, A):
+    """
+    Make four plots in the same figure.
+
+    This matplotlib code is inspired by the code for the layouts in
+    http://matplotlib.org/1.4.1/examples/pylab_examples/subplots_demo.html
+
+    """
+    filename = base_filename + '.four.plots.svg'
+
+    # These levels of the reciprocal of the pseudospectrum epsilon
+    # are taken from the Tisseur and Higham publication.
+    levels = np.power(10, np.linspace(1, 10, 19))
+
+    # The outputs of the Schur decomposition are:
+    # T : a triangular matrix, upper triangular by default.
+    # Z : A unitary matrix
+    T, Z_unitary = scipy.linalg.schur(A, output='complex')
+
+    # Get the norms to plot.
+    XYZ_triples = []
+    for t in t0, t1, t2, t3:
+        if t is None:
+            f = np.vectorize(partial(resolvent_onenorm, T, Z_unitary))
+        else:
+            f = np.vectorize(partial(resolvent_onenormest, t, T, Z_unitary))
+        low = -1.5
+        high = 1.5
+        u = np.linspace(low, high, grid_count)
+        X, Y = np.meshgrid(u, u)
+        z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
+        print('z:')
+        print(z)
+        print()
+        Z = f(z)
+        XYZ_triples.append((X, Y, Z))
+
+    # row and column sharing
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row')
+    for ax in ax1, ax2, ax3, ax4:
+        ax.set_aspect('equal')
+
+    # plot the upper left contour plot
+    X, Y, Z = XYZ_triples[0]
+    ax1.contour(X, Y, Z, levels=levels, colors='k')
+    circle1 = plt.Circle((0, 0), 1, color='k', linestyle='dashed', fill=False)
+    # gca means get current axis, creating one if necessary
+    #fig.gca().add_artist(circle1)
+    ax1.add_artist(circle1)
+
+    # plot the upper right contour plot
+    X, Y, Z = XYZ_triples[1]
+    ax2.contour(X, Y, Z, levels=levels, colors='k')
+    circle1 = plt.Circle((0, 0), 1, color='k', linestyle='dashed', fill=False)
+    ax2.add_artist(circle1)
+
+    # plot the lower left contour plot
+    X, Y, Z = XYZ_triples[2]
+    ax3.contour(X, Y, Z, levels=levels, colors='k')
+    circle1 = plt.Circle((0, 0), 1, color='k', linestyle='dashed', fill=False)
+    ax3.add_artist(circle1)
+
+    # plot the lower right contour plot
+    X, Y, Z = XYZ_triples[3]
+    ax4.contour(X, Y, Z, levels=levels, colors='k')
+    circle1 = plt.Circle((0, 0), 1, color='k', linestyle='dashed', fill=False)
+    ax4.add_artist(circle1)
+
+    #plt.show()
+    plt.savefig(filename)
 
 
-def main():
-
-    A = make_landau_matrix()
-    #t_values = [2]
-    t_values = [None, 1, 2, 4, 8, 16]
-    base_filename = 'landau.new'
-
-    print('creating the figures for t in', t_values, '...')
-    for t in t_values:
-        print('t =', t, '...')
-        figure(base_filename, t, A)
-
-
-def figure(base_filename, t, A):
+def figure(base_filename, grid_count, t, A):
 
     if t is None:
         filename = base_filename + '.svg'
     else:
         filename = base_filename + '.' + str(t) + '.svg'
 
+    # These levels of the reciprocal of the pseudospectrum epsilon
+    # are taken from the Tisseur and Higham publication.
     levels = np.power(10, np.linspace(1, 10, 19))
 
     # The outputs of the Schur decomposition are:
@@ -150,21 +198,16 @@ def figure(base_filename, t, A):
 
     low = -1.5
     high = 1.5
-    grid_count = 201
-    #grid_count = 100
     u = np.linspace(low, high, grid_count)
     X, Y = np.meshgrid(u, u)
     z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
     Z = f(z)
     print(Z)
 
-    print('eigenvalues of decay matrix:')
-    print(scipy.linalg.eigvals(A))
-
     # Add contour lines at predefined levels.
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
-    plt.contour( X, Y, Z, levels=levels, colors='k')
+    plt.contour(X, Y, Z, levels=levels, colors='k')
 
     # Add dashed unit circle.
     circle1 = plt.Circle((0, 0), 1, color='k', linestyle='dashed', fill=False)
@@ -174,4 +217,67 @@ def figure(base_filename, t, A):
     plt.savefig(filename)
 
 
-main()
+
+def main(args):
+
+    # Create the landau matrix.
+    A = make_landau_matrix()
+
+    print('first few eigenvalues of the matrix:')
+    w = scipy.linalg.eigvals(A)
+    print(w[:10])
+    print('last few eigenvalues of the matrix:')
+    print(w[-10:])
+
+    print('trying to plot the figure with four contour maps...')
+    my_multi_figure(args.base_filename, args.grid_count, 1, 4, 8, 16, A)
+
+    return
+
+    # Define the values of t to use in the loop.
+    # In this context, t is the block size of the block approximation.
+    # When t is None, the pseudospectrum is computed exactly.
+    t_values = [2]
+    #t_values = [None, 1, 2, 4, 8, 16]
+
+    # Create an svg file for each requested block size,
+    # using the requested output filename base and using
+    # the requested number of lines in the real and imaginary
+    # axis for the complex plane in the pseudospectrum discretization.
+    print('creating the figures for t in', t_values, '...')
+    for t in t_values:
+        print('t =', t, '...')
+        figure(args.base_filename, args.grid_count, t, A)
+
+
+if __name__ == '__main__':
+
+    # Initialize default values of options.
+    default_grid_count = 201
+    default_base_filename = 'landau'
+
+    # Show the numpy and scipy versions.
+    print('numpy version:', np.__version__)
+    print('scipy version:', scipy.__version__)
+
+    # Define the command line arguments.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--grid-count',
+            default=default_grid_count,
+            help=(
+                'The pseudospectrum discretization has this many lines '
+                'in each direction (Default: %d).' % default_grid_count))
+    parser.add_argument('--base-filename',
+            default=default_base_filename,
+            help=(
+                'The base filename for the output .svg image files '
+                '(Default: %s).' % default_base_filename))
+
+    # Parse the command line arguments.
+    args = parser.parse_args()
+
+    # Report the values of the command line arguments,
+    # and call the main procedure.
+    print('base filename:', args.base_filename)
+    print('grid count:', args.grid_count)
+    main(args)
