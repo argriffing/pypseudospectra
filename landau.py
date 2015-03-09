@@ -124,9 +124,6 @@ def my_multi_figure(base_filename, grid_count, t0, t1, t2, t3, A):
         u = np.linspace(low, high, grid_count)
         X, Y = np.meshgrid(u, u)
         z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
-        print('z:')
-        print(z)
-        print()
         Z = f(z)
         XYZ_triples.append((X, Y, Z))
 
@@ -202,7 +199,6 @@ def figure(base_filename, grid_count, t, A):
     X, Y = np.meshgrid(u, u)
     z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
     Z = f(z)
-    print(Z)
 
     # Add contour lines at predefined levels.
     fig, ax = plt.subplots()
