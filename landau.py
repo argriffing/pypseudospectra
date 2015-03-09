@@ -15,6 +15,10 @@ block algorithm for matrix 1-norm estimation
 with an application to 1-norm pseudospectra
 http://eprints.ma.man.ac.uk/321/01/covered/MIMS_ep2006_145.pdf
 
+NOTE: the original radius was 1.5; this has been changed to 1.2.
+If this new discretization introduces different artifacts than the old
+discretization, then maybe revert to the old discretization.
+
 """
 from __future__ import print_function, division
 
@@ -119,8 +123,8 @@ def my_multi_figure(base_filename, grid_count, t0, t1, t2, t3, A):
             f = np.vectorize(partial(resolvent_onenorm, T, Z_unitary))
         else:
             f = np.vectorize(partial(resolvent_onenormest, t, T, Z_unitary))
-        low = -1.5
-        high = 1.5
+        low = -1.2
+        high = 1.2
         u = np.linspace(low, high, grid_count)
         X, Y = np.meshgrid(u, u)
         z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
@@ -129,8 +133,19 @@ def my_multi_figure(base_filename, grid_count, t0, t1, t2, t3, A):
 
     # row and column sharing
     f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row')
+
+    ## remove most of the spacing between the subplots
+    f.subplots_adjust(hspace=0.001, wspace=0.001)
+
     for ax in ax1, ax2, ax3, ax4:
+
+        # Preserve the aspect ratio of the complex plane.
+        # For example, the unit circle in the complex plane should
+        # look like a circle and not like an ellipse.
         ax.set_aspect('equal')
+
+        # Do not draw the axes.
+        ax.axis('off')
 
     # plot the upper left contour plot
     X, Y, Z = XYZ_triples[0]
@@ -193,8 +208,8 @@ def figure(base_filename, grid_count, t, A):
     else:
         f = np.vectorize(partial(resolvent_onenormest, t, T, Z))
 
-    low = -1.5
-    high = 1.5
+    low = -1.2
+    high = 1.2
     u = np.linspace(low, high, grid_count)
     X, Y = np.meshgrid(u, u)
     z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
