@@ -1,0 +1,21 @@
+row sums of probability matrix:
+[ 1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.
+  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.
+  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.  1.]
+sum of stationary probabilities: 1.0
+reproducing table 8...
+t: 1
+underest ratio min: 0.442266741691
+underest ratio avg: 0.966599740007
+percent exact: 72.201183139
+
+t: 2
+underest ratio min: 0.548937054493
+underest ratio avg: 0.981507816869
+percent exact: 76.4015742185
+
+t: 3
+underest ratio min: 0.687321314587
+underest ratio avg: 0.991181686598
+percent exact: 84.7182000446
+

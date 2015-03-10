@@ -62,57 +62,7 @@ def riffle_transition_matrix(n):
             log_P[i, j] += log_a[j] - log_a[i]
     return np.exp(log_P[1:, 1:])
 
-"""
-def resolvent(A, z):
-    # A: matrix
-    # z: complex number
-    n, m = A.shape
-    assert_equal(n, m)
-    I = np.eye(n, dtype=float)
-    B = np.linalg.inv(z*I - A)
-    return B
 
-
-def resolvent_onenorm(A, z):
-    try:
-        B = resolvent(A, z)
-    except np.linalg.LinAlgError as e:
-        return 0
-    return np.linalg.norm(B, ord=1)
-
-
-def resolvent_onenormest(t, A, z):
-    # TODO use decomposition instead of inversion
-    try:
-        #n = A.shape[0]
-        #I = np.eye(n, dtype=float)
-        #Binv = z*I - A
-        B = resolvent(A, z)
-        L = scipy.sparse.linalg.aslinearoperator(B)
-        return scipy.sparse.linalg.onenormest(L, t=t)
-    except np.linalg.LinAlgError as e:
-        return 0
-"""
-
-
-def main():
-    n = 52
-    a = np.array([_eulerian(n, i) for i in range(1, n+1)], dtype=float)
-    log_a = np.log(a)
-    P = riffle_transition_matrix(n)
-
-    print('row sums of probability matrix:')
-    print(P.sum(axis=1))
-
-    pi = np.exp(log_a - gammaln(n+1))
-
-    print('sum of stationary probabilities:', pi.sum())
-    A = P - pi
-
-    print('creating the figure...')
-    for t in 1, 2, 3:
-        figure_7_2(t, A.T)
-    #figure_7_2(None, A)
 
 
 def figure_7_2(t, A):
@@ -160,6 +110,54 @@ def figure_7_2(t, A):
     else:
         filename = 'riffle_t_%d.svg' % t
     plt.savefig(filename)
+
+
+def table_8(Z, z, t, T, Z_unitary):
+    a, b = Z.shape
+    print('t:', t)
+    underest_ratios = []
+    for x in range(a):
+        for y in range(b):
+            est = resolvent_onenormest(t, T, Z_unitary, z[x, y])
+            underest_ratios.append(est / Z[x, y])
+    exact_count = sum(1 for x in underest_ratios if np.abs(x-1) < 1e-6)
+    print('underest ratio min:', np.min(underest_ratios))
+    print('underest ratio avg:', np.mean(underest_ratios))
+    print('percent exact:', 100 * exact_count / len(underest_ratios))
+    print()
+
+
+def main():
+    n = 52
+    a = np.array([_eulerian(n, i) for i in range(1, n+1)], dtype=float)
+    log_a = np.log(a)
+    P = riffle_transition_matrix(n)
+
+    print('row sums of probability matrix:')
+    print(P.sum(axis=1))
+
+    pi = np.exp(log_a - gammaln(n+1))
+    print('sum of stationary probabilities:', pi.sum())
+
+    A = (P - pi).T
+    T, Z_unitary = scipy.linalg.schur(A, output='complex')
+
+    #print('creating the figure...')
+    #for t in 1, 2, 3:
+        #figure_7_2(t, A)
+
+    print('reproducing table 8...')
+    low = -1.5
+    high = 1.5
+    t = None
+    f = np.vectorize(partial(resolvent_onenorm, T, Z_unitary))
+    u = np.linspace(low, high, 201)
+    #u = np.linspace(low, high, 101)
+    X, Y = np.meshgrid(u, u)
+    z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
+    Z = f(z)
+    for t in 1, 2, 3:
+        table_8(Z, z, t, T, Z_unitary)
 
 
 main()
