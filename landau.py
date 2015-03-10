@@ -261,6 +261,44 @@ def main(args):
         figure(args.base_filename, args.grid_count, t, A)
 
 
+def table_8(Z, z, t, T, Z_unitary):
+    a, b = Z.shape
+    print('t:', t)
+    underest_ratios = []
+    for x in range(a):
+        for y in range(b):
+            est = resolvent_onenormest(t, T, Z_unitary, z[x, y])
+            underest_ratios.append(est / Z[x, y])
+    exact_count = sum(1 for x in underest_ratios if np.abs(x-1) < 1e-6)
+    print('underest ratio min:', np.min(underest_ratios))
+    print('underest ratio avg:', np.mean(underest_ratios))
+    print('percent exact:', 100 * exact_count / len(underest_ratios))
+    print()
+
+
+def main_table_8(args):
+
+    print('creating landau matrix...')
+    A = make_landau_matrix()
+
+    print('decomposing landau matrix...')
+    T, Z_unitary = scipy.linalg.schur(A, output='complex')
+
+    print('computing exact 1-norms...')
+    low = -1.2
+    high = 1.2
+    t = None
+    f = np.vectorize(partial(resolvent_onenorm, T, Z_unitary))
+    u = np.linspace(low, high, args.grid_count)
+    X, Y = np.meshgrid(u, u)
+    z = u[np.newaxis, :] + 1j*u[:, np.newaxis]
+    Z = f(z)
+
+    print('reproducing table 8...')
+    for t in 1, 2, 4, 8, 16:
+        table_8(Z, z, t, T, Z_unitary)
+
+
 if __name__ == '__main__':
 
     # Initialize default values of options.
@@ -291,4 +329,5 @@ if __name__ == '__main__':
     # and call the main procedure.
     print('base filename:', args.base_filename)
     print('grid count:', args.grid_count)
-    main(args)
+    #main(args)
+    main_table_8(args)

@@ -1,0 +1,32 @@
+numpy version: 1.10.0.dev0+4d4fb0d
+scipy version: 0.16.0.dev0+4524974
+base filename: landau
+grid count: 201
+creating landau matrix...
+decomposing landau matrix...
+computing exact 1-norms...
+reproducing table 8...
+t: 1
+underest ratio min: 0.197275709206
+underest ratio avg: 0.919534130257
+percent exact: 14.9575505557
+
+t: 2
+underest ratio min: 0.286256928788
+underest ratio avg: 0.95521391585
+percent exact: 20.251973961
+
+t: 4
+underest ratio min: 0.616510072624
+underest ratio avg: 0.972777221199
+percent exact: 32.5214722408
+
+t: 8
+underest ratio min: 0.732006540703
+underest ratio avg: 0.985135837558
+percent exact: 46.9988366625
+
+t: 16
+underest ratio min: 0.804429232821
+underest ratio avg: 0.993685735728
+percent exact: 64.0949481448
