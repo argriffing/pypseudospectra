@@ -15,9 +15,15 @@ block algorithm for matrix 1-norm estimation
 with an application to 1-norm pseudospectra
 http://eprints.ma.man.ac.uk/321/01/covered/MIMS_ep2006_145.pdf
 
-NOTE: the original radius was 1.5; this has been changed to 1.2.
+NOTE: The original radius was 1.5; this has been changed to 1.2.
 If this new discretization introduces different artifacts than the old
 discretization, then maybe revert to the old discretization.
+
+NOTE: For the riffle shuffle matrix of order 52, about 2/3 of the time spent
+in solve_triangular is spent doing administrative stuff like looking
+up the correct function in lapack and checking that the entries of
+the matrix are reasonable or that the matrix has the correct
+Fortran vs. C convention.
 
 """
 from __future__ import print_function, division

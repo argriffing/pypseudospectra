@@ -45,19 +45,22 @@ def get_resolvent_operator(T, Z, eps_recip):
 
 class _ResolventOperator(LinearOperator):
 
-    def __init__(self, M, Z, lower=False):
+    def __init__(self, M, Z, lower=False, conj=False):
         # M is triangular
         # Z is unitary
+        # lower determines whether the matrix is lower vs upper triangular
+        # conj indicates whether to solve the conjugate transpose
         self.M = M
         self.Z = Z
+        self.ZH = self.Z.conj().T
         self.lower = lower
+        self.conj = conj
         self.shape = M.shape
         self.dtype = np.dtype(complex)
 
     def _matmat(self, B):
         M = self.M
-        Z = self.Z
-        ZH = self.Z.conj().T
+        Z = self.ZH
         #assert_equal(self.M.shape, self.Z.shape)
         #assert_equal(self.M.shape, self.ZH.shape)
         #print('shapes in resolvent matrix multiplication:')
@@ -66,13 +69,12 @@ class _ResolventOperator(LinearOperator):
         #print('ZH:', ZH.shape)
         #print('B:', B.shape)
         #print()
-        C = scipy.linalg.solve_triangular(M, ZH.dot(B), lower=self.lower)
+        #ctrtrs(uplo, trans, diag, n, hrhs, a, lda, b, ldb, info)
+        trans = 'C' if self.conj else 'N'
+        C = scipy.linalg.solve_triangular(
+                M, ZH.dot(B), lower=self.lower, trans=trans)
         return Z.dot(C)
 
-    def _transpose(self):
-        return _ResolventOperator(self.M.T, self.Z,
-                lower=(not self.lower))
-
     def _adjoint(self):
-        return _ResolventOperator(self.M.conj().T, self.Z,
-                lower=(not self.lower))
+        return _ResolventOperator(
+                self.M, self.Z, lower=self.lower, conj=(not self.conj))
