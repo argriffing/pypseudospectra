@@ -335,5 +335,5 @@ if __name__ == '__main__':
     # and call the main procedure.
     print('base filename:', args.base_filename)
     print('grid count:', args.grid_count)
-    #main(args)
-    main_table_8(args)
+    main(args)
+    #main_table_8(args)

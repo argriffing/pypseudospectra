@@ -60,7 +60,8 @@ class _ResolventOperator(LinearOperator):
 
     def _matmat(self, B):
         M = self.M
-        Z = self.ZH
+        Z = self.Z
+        ZH = self.ZH
         #assert_equal(self.M.shape, self.Z.shape)
         #assert_equal(self.M.shape, self.ZH.shape)
         #print('shapes in resolvent matrix multiplication:')
