@@ -45,6 +45,15 @@ from matplotlib import colors, cm
 from resolvent import resolvent_onenorm, resolvent_onenormest
 
 
+from pyoperators import Operator, I
+
+# pyoperators resolvent
+
+
+def resolvent_operator(A, z):
+    return (A - z*I).I
+
+
 def make_landau_matrix():
 
     # Define the frenel number.
